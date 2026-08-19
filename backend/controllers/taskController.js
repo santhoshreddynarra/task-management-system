@@ -38,7 +38,7 @@ const createTask = async (req, res, next) => {
 
 const getTasks = async (req, res, next) => {
   try {
-    const { status, priority, search } = req.query;
+    const { status, priority, search, page = 1, limit = 10, sortBy, sortOrder = 'asc' } = req.query;
 
     if (status && !['Todo', 'In Progress', 'Done'].includes(status)) {
       return res.status(400).json({ message: 'Invalid status. Must be Todo, In Progress, or Done' });
@@ -47,6 +47,27 @@ const getTasks = async (req, res, next) => {
     if (priority && !['Low', 'Medium', 'High'].includes(priority)) {
       return res.status(400).json({ message: 'Invalid priority. Must be Low, Medium, or High' });
     }
+
+    const parsedPage = parseInt(page, 10);
+    if (isNaN(parsedPage) || parsedPage <= 0 || String(parsedPage) !== String(page).trim()) {
+      return res.status(400).json({ message: 'Page must be a positive integer' });
+    }
+
+    const parsedLimit = parseInt(limit, 10);
+    if (isNaN(parsedLimit) || parsedLimit <= 0 || parsedLimit > 100 || String(parsedLimit) !== String(limit).trim()) {
+      return res.status(400).json({ message: 'Limit must be a positive integer between 1 and 100' });
+    }
+
+    if (sortBy && !['dueDate', 'priority', 'createdAt'].includes(sortBy)) {
+      return res.status(400).json({ message: 'Invalid sortBy field. Allowed fields: dueDate, priority, createdAt' });
+    }
+
+    if (sortOrder && !['asc', 'desc'].includes(sortOrder.toLowerCase())) {
+      return res.status(400).json({ message: 'Invalid sortOrder. Must be asc or desc' });
+    }
+
+    const normalizedSortOrder = sortOrder.toLowerCase();
+    const sortDirection = normalizedSortOrder === 'desc' ? -1 : 1;
 
     const query = { userId: req.user._id };
 
@@ -63,8 +84,60 @@ const getTasks = async (req, res, next) => {
       query.title = { $regex: escapedSearch, $options: 'i' };
     }
 
-    const tasks = await Task.find(query);
-    res.status(200).json(tasks);
+    const totalTasks = await Task.countDocuments(query);
+    const totalPages = totalTasks === 0 ? 0 : Math.ceil(totalTasks / parsedLimit);
+    const skip = (parsedPage - 1) * parsedLimit;
+
+    let tasks;
+
+    if (sortBy === 'priority') {
+      tasks = await Task.aggregate([
+        { $match: query },
+        {
+          $addFields: {
+            priorityOrder: {
+              $switch: {
+                branches: [
+                  { case: { $eq: ['$priority', 'Low'] }, then: 1 },
+                  { case: { $eq: ['$priority', 'Medium'] }, then: 2 },
+                  { case: { $eq: ['$priority', 'High'] }, then: 3 }
+                ],
+                default: 2
+              }
+            }
+          }
+        },
+        { $sort: { priorityOrder: sortDirection, createdAt: -1 } },
+        { $skip: skip },
+        { $limit: parsedLimit },
+        { $project: { priorityOrder: 0 } }
+      ]);
+    } else {
+      const sortObj = {};
+      if (sortBy === 'dueDate') {
+        sortObj.dueDate = sortDirection;
+        sortObj.createdAt = -1;
+      } else if (sortBy === 'createdAt') {
+        sortObj.createdAt = sortDirection;
+      } else {
+        sortObj.createdAt = -1;
+      }
+
+      tasks = await Task.find(query)
+        .sort(sortObj)
+        .skip(skip)
+        .limit(parsedLimit);
+    }
+
+    res.status(200).json({
+      tasks,
+      pagination: {
+        page: parsedPage,
+        limit: parsedLimit,
+        totalTasks,
+        totalPages
+      }
+    });
   } catch (error) {
     next(error);
   }
