@@ -38,7 +38,32 @@ const createTask = async (req, res, next) => {
 
 const getTasks = async (req, res, next) => {
   try {
-    const tasks = await Task.find({ userId: req.user._id });
+    const { status, priority, search } = req.query;
+
+    if (status && !['Todo', 'In Progress', 'Done'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid status. Must be Todo, In Progress, or Done' });
+    }
+
+    if (priority && !['Low', 'Medium', 'High'].includes(priority)) {
+      return res.status(400).json({ message: 'Invalid priority. Must be Low, Medium, or High' });
+    }
+
+    const query = { userId: req.user._id };
+
+    if (status) {
+      query.status = status;
+    }
+
+    if (priority) {
+      query.priority = priority;
+    }
+
+    if (search && search.trim()) {
+      const escapedSearch = search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      query.title = { $regex: escapedSearch, $options: 'i' };
+    }
+
+    const tasks = await Task.find(query);
     res.status(200).json(tasks);
   } catch (error) {
     next(error);
