@@ -196,11 +196,44 @@ const updateTaskStatus = async (req, res, next) => {
   }
 };
 
+const getTaskAnalytics = async (req, res, next) => {
+  try {
+    const stats = await Task.aggregate([
+      { $match: { userId: req.user._id } },
+      {
+        $group: {
+          _id: null,
+          totalTasks: { $sum: 1 },
+          completedTasks: {
+            $sum: { $cond: [{ $eq: ['$status', 'Done'] }, 1, 0] }
+          }
+        }
+      }
+    ]);
+
+    const totalTasks = stats.length > 0 ? stats[0].totalTasks : 0;
+    const completedTasks = stats.length > 0 ? stats[0].completedTasks : 0;
+    const pendingTasks = totalTasks - completedTasks;
+    const completionPercentage =
+      totalTasks > 0 ? Number(((completedTasks / totalTasks) * 100).toFixed(2)) : 0;
+
+    res.status(200).json({
+      totalTasks,
+      completedTasks,
+      pendingTasks,
+      completionPercentage
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createTask,
   getTasks,
   getTaskById,
   updateTask,
   deleteTask,
-  updateTaskStatus
+  updateTaskStatus,
+  getTaskAnalytics
 };

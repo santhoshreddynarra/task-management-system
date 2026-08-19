@@ -5,7 +5,8 @@ const {
   getTaskById,
   updateTask,
   deleteTask,
-  updateTaskStatus
+  updateTaskStatus,
+  getTaskAnalytics
 } = require('../controllers/taskController');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -16,6 +17,8 @@ router.use(protect);
 router.route('/')
   .post(createTask)
   .get(getTasks);
+
+router.get('/analytics', getTaskAnalytics);
 
 router.route('/:id')
   .get(getTaskById)
