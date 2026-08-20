@@ -2,7 +2,16 @@ import React from 'react';
 import TaskCard from './TaskCard';
 import { ListPlus, CheckSquare, Sparkles } from 'lucide-react';
 
-const TaskList = ({ tasks, loading, onEdit, onDelete, onStatusChange, onNewTask }) => {
+const TaskList = ({
+  tasks,
+  loading,
+  onEdit,
+  onDelete,
+  onStatusChange,
+  onNewTask,
+  hasActiveFilters = false,
+  onResetFilters
+}) => {
   if (loading) {
     return (
       <div
@@ -95,14 +104,25 @@ const TaskList = ({ tasks, loading, onEdit, onDelete, onStatusChange, onNewTask 
         >
           <CheckSquare size={32} />
         </div>
-        <h3 style={{ fontSize: '1.25rem', marginBottom: '8px' }}>No Tasks Found</h3>
+        <h3 style={{ fontSize: '1.25rem', marginBottom: '8px' }}>
+          {hasActiveFilters ? 'No Tasks Found' : 'No Tasks Yet'}
+        </h3>
         <p style={{ color: 'var(--text-muted)', maxWidth: '400px', marginBottom: '24px', fontSize: '0.92rem' }}>
-          No tasks match your current criteria. Create a new task or adjust your filters.
+          {hasActiveFilters
+            ? 'No tasks match your current search and filter criteria.'
+            : 'You have not created any tasks yet. Get started by creating your first task!'}
         </p>
-        <button onClick={onNewTask} className="btn btn-primary">
-          <ListPlus size={18} />
-          <span>Create First Task</span>
-        </button>
+
+        {hasActiveFilters && onResetFilters ? (
+          <button onClick={onResetFilters} className="btn btn-secondary">
+            <span>Clear Filters & Search</span>
+          </button>
+        ) : (
+          <button onClick={onNewTask} className="btn btn-primary">
+            <ListPlus size={18} />
+            <span>Create First Task</span>
+          </button>
+        )}
       </div>
     );
   }

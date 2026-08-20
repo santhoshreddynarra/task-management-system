@@ -84,19 +84,24 @@ const Dashboard = () => {
   const fetchTasks = useCallback(async () => {
     try {
       setLoadingTasks(true);
-      const params = { page, limit, sortBy, sortOrder };
+      const params = {};
 
       if (debouncedSearch.trim()) params.search = debouncedSearch.trim();
       if (statusFilter !== 'All') params.status = statusFilter;
       if (priorityFilter !== 'All') params.priority = priorityFilter;
+      if (sortBy) params.sortBy = sortBy;
+      if (sortOrder) params.sortOrder = sortOrder;
+      if (page) params.page = page;
+      if (limit) params.limit = limit;
 
       const res = await api.get('/tasks', { params });
       setTasks(res.data.tasks || []);
+      const paginationData = res.data.pagination || res.data;
       setPagination({
-        page: res.data.page || page,
-        limit: res.data.limit || limit,
-        totalTasks: res.data.totalTasks || 0,
-        totalPages: res.data.totalPages || 0
+        page: paginationData.page || page,
+        limit: paginationData.limit || limit,
+        totalTasks: paginationData.totalTasks || 0,
+        totalPages: paginationData.totalPages || 0
       });
     } catch (err) {
       console.error('Failed to fetch tasks:', err.message);
@@ -227,6 +232,10 @@ const Dashboard = () => {
         onDelete={handleDeleteTask}
         onStatusChange={handleStatusChange}
         onNewTask={handleOpenCreateModal}
+        hasActiveFilters={
+          search.trim() !== '' || statusFilter !== 'All' || priorityFilter !== 'All'
+        }
+        onResetFilters={handleResetFilters}
       />
 
       {/* Pagination */}
