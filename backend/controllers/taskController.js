@@ -5,29 +5,35 @@ const createTask = async (req, res, next) => {
   try {
     const { title, description, status, priority, dueDate } = req.body;
 
-    if (!title || !title.trim()) {
+    if (!title || typeof title !== 'string' || !title.trim()) {
       return res.status(400).json({ message: 'Please provide a title' });
     }
 
-    if (status && !['Todo', 'In Progress', 'Done'].includes(status)) {
+    if (description !== undefined && typeof description !== 'string') {
+      return res.status(400).json({ message: 'Description must be a string' });
+    }
+
+    if (status !== undefined && (!['Todo', 'In Progress', 'Done'].includes(status) || typeof status !== 'string')) {
       return res.status(400).json({ message: 'Invalid status. Must be Todo, In Progress, or Done' });
     }
 
-    if (priority && !['Low', 'Medium', 'High'].includes(priority)) {
+    if (priority !== undefined && (!['Low', 'Medium', 'High'].includes(priority) || typeof priority !== 'string')) {
       return res.status(400).json({ message: 'Invalid priority. Must be Low, Medium, or High' });
     }
 
-    if (dueDate && isNaN(Date.parse(dueDate))) {
-      return res.status(400).json({ message: 'Invalid due date format' });
+    if (dueDate !== undefined && dueDate !== null && dueDate !== '') {
+      if (isNaN(Date.parse(dueDate))) {
+        return res.status(400).json({ message: 'Invalid due date format' });
+      }
     }
 
     const task = await Task.create({
       userId: req.user._id,
       title: title.trim(),
-      description: description ? description.trim() : '',
+      description: typeof description === 'string' ? description.trim() : '',
       status: status || 'Todo',
       priority: priority || 'Medium',
-      dueDate: dueDate ? new Date(dueDate) : undefined
+      dueDate: dueDate && dueDate !== '' ? new Date(dueDate) : undefined
     });
 
     res.status(201).json(task);
@@ -40,11 +46,11 @@ const getTasks = async (req, res, next) => {
   try {
     const { status, priority, search, page = 1, limit = 10, sortBy, sortOrder = 'asc' } = req.query;
 
-    if (status && !['Todo', 'In Progress', 'Done'].includes(status)) {
+    if (status !== undefined && (!['Todo', 'In Progress', 'Done'].includes(status) || typeof status !== 'string')) {
       return res.status(400).json({ message: 'Invalid status. Must be Todo, In Progress, or Done' });
     }
 
-    if (priority && !['Low', 'Medium', 'High'].includes(priority)) {
+    if (priority !== undefined && (!['Low', 'Medium', 'High'].includes(priority) || typeof priority !== 'string')) {
       return res.status(400).json({ message: 'Invalid priority. Must be Low, Medium, or High' });
     }
 
@@ -58,18 +64,19 @@ const getTasks = async (req, res, next) => {
       return res.status(400).json({ message: 'Limit must be a positive integer between 1 and 100' });
     }
 
-    if (sortBy && !['dueDate', 'priority', 'createdAt'].includes(sortBy)) {
+    if (sortBy !== undefined && (!['dueDate', 'priority', 'createdAt'].includes(sortBy) || typeof sortBy !== 'string')) {
       return res.status(400).json({ message: 'Invalid sortBy field. Allowed fields: dueDate, priority, createdAt' });
     }
 
-    if (sortOrder && !['asc', 'desc'].includes(sortOrder.toLowerCase())) {
+    if (sortOrder !== undefined && (!['asc', 'desc'].includes(String(sortOrder).toLowerCase()) || typeof sortOrder !== 'string')) {
       return res.status(400).json({ message: 'Invalid sortOrder. Must be asc or desc' });
     }
 
-    const normalizedSortOrder = sortOrder.toLowerCase();
+    const normalizedSortOrder = String(sortOrder).toLowerCase();
     const sortDirection = normalizedSortOrder === 'desc' ? -1 : 1;
 
-    const query = { userId: req.user._id };
+    const userObjectId = new mongoose.Types.ObjectId(req.user._id);
+    const query = { userId: userObjectId };
 
     if (status) {
       query.status = status;
@@ -79,7 +86,7 @@ const getTasks = async (req, res, next) => {
       query.priority = priority;
     }
 
-    if (search && search.trim()) {
+    if (search && typeof search === 'string' && search.trim()) {
       const escapedSearch = search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       query.title = { $regex: escapedSearch, $options: 'i' };
     }
@@ -180,35 +187,42 @@ const updateTask = async (req, res, next) => {
     }
 
     if (req.body.title !== undefined) {
-      if (!req.body.title || !req.body.title.trim()) {
+      if (typeof req.body.title !== 'string' || !req.body.title.trim()) {
         return res.status(400).json({ message: 'Title cannot be empty' });
       }
       task.title = req.body.title.trim();
     }
 
     if (req.body.description !== undefined) {
-      task.description = req.body.description ? req.body.description.trim() : '';
+      if (typeof req.body.description !== 'string') {
+        return res.status(400).json({ message: 'Description must be a string' });
+      }
+      task.description = req.body.description.trim();
     }
 
     if (req.body.status !== undefined) {
-      if (!['Todo', 'In Progress', 'Done'].includes(req.body.status)) {
+      if (typeof req.body.status !== 'string' || !['Todo', 'In Progress', 'Done'].includes(req.body.status)) {
         return res.status(400).json({ message: 'Invalid status. Must be Todo, In Progress, or Done' });
       }
       task.status = req.body.status;
     }
 
     if (req.body.priority !== undefined) {
-      if (!['Low', 'Medium', 'High'].includes(req.body.priority)) {
+      if (typeof req.body.priority !== 'string' || !['Low', 'Medium', 'High'].includes(req.body.priority)) {
         return res.status(400).json({ message: 'Invalid priority. Must be Low, Medium, or High' });
       }
       task.priority = req.body.priority;
     }
 
     if (req.body.dueDate !== undefined) {
-      if (req.body.dueDate && isNaN(Date.parse(req.body.dueDate))) {
-        return res.status(400).json({ message: 'Invalid due date format' });
+      if (req.body.dueDate !== null && req.body.dueDate !== '') {
+        if (isNaN(Date.parse(req.body.dueDate))) {
+          return res.status(400).json({ message: 'Invalid due date format' });
+        }
+        task.dueDate = new Date(req.body.dueDate);
+      } else {
+        task.dueDate = undefined;
       }
-      task.dueDate = req.body.dueDate ? new Date(req.body.dueDate) : undefined;
     }
 
     const updatedTask = await task.save();
@@ -247,7 +261,7 @@ const updateTaskStatus = async (req, res, next) => {
 
     const { status } = req.body;
 
-    if (!status || !['Todo', 'In Progress', 'Done'].includes(status)) {
+    if (!status || typeof status !== 'string' || !['Todo', 'In Progress', 'Done'].includes(status)) {
       return res.status(400).json({ message: 'Please provide a valid status: Todo, In Progress, or Done' });
     }
 
@@ -271,8 +285,9 @@ const updateTaskStatus = async (req, res, next) => {
 
 const getTaskAnalytics = async (req, res, next) => {
   try {
+    const userObjectId = new mongoose.Types.ObjectId(req.user._id);
     const stats = await Task.aggregate([
-      { $match: { userId: req.user._id } },
+      { $match: { userId: userObjectId } },
       {
         $group: {
           _id: null,
