@@ -417,3 +417,115 @@ button, input, select, textarea {
 .toast-info {
   border-left: 4px solid var(--primary-light);
 }
+
+/* ── Toast: slide-in from right ──────────────────────────── */
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateX(48px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.toast {
+  animation: toastIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ── Glass Card: Lift on Hover ───────────────────────────── */
+.glass-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+/* ── Gradient text utility ───────────────────────────────── */
+.gradient-text {
+  background: var(--primary-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Spinner ─────────────────────────────────────────────── */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+/* ── Error text helper ───────────────────────────────────── */
+.form-error {
+  font-size: 0.8rem;
+  color: #f87171;
+  margin-top: 4px;
+}
+
+/* ── Responsive Utilities ────────────────────────────────── */
+.hide-mobile {
+  display: inline;
+}
+
+/* ── Responsive Breakpoints ──────────────────────────────── */
+
+/* Tablet (≤ 768px) */
+@media (max-width: 768px) {
+  body {
+    font-size: 14px;
+  }
+
+  .hide-mobile {
+    display: none;
+  }
+
+  .modal-content {
+    max-width: 100%;
+    border-radius: var(--radius-lg);
+  }
+
+  .toast-container {
+    bottom: 12px;
+    right: 12px;
+    left: 12px;
+  }
+
+  .toast {
+    min-width: unset;
+    width: 100%;
+  }
+}
+
+/* Mobile (≤ 480px) */
+@media (max-width: 480px) {
+  .btn {
+    padding: 9px 14px;
+    font-size: 0.88rem;
+  }
+
+  .modal-body {
+    padding: 16px;
+  }
+
+  .modal-footer {
+    flex-direction: column-reverse;
+  }
+
+  .modal-footer .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .glass-card:hover {
+    transform: none;
+  }
+}
+
