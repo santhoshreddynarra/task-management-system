@@ -26,8 +26,10 @@ const Pagination = ({ pagination, onPageChange, onLimitChange }) => {
     return pages;
   };
 
-  const startItem = (page - 1) * limit + 1;
+  const startItem = totalTasks > 0 ? (page - 1) * limit + 1 : 0;
   const endItem = Math.min(page * limit, totalTasks);
+  const isFirstPage = page <= 1;
+  const isLastPage = page >= totalPages || totalPages === 0;
 
   return (
     <div
@@ -60,6 +62,7 @@ const Pagination = ({ pagination, onPageChange, onLimitChange }) => {
             value={limit}
             onChange={(e) => onLimitChange(Number(e.target.value))}
             style={{ padding: '4px 8px', fontSize: '0.82rem', width: 'auto' }}
+            aria-label="Tasks per page"
           >
             <option value={6}>6</option>
             <option value={12}>12</option>
@@ -70,75 +73,85 @@ const Pagination = ({ pagination, onPageChange, onLimitChange }) => {
       </div>
 
       {/* Page Navigation Buttons */}
-      {totalPages > 1 && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          {/* Previous Page */}
-          <button
-            onClick={() => onPageChange(page - 1)}
-            disabled={page <= 1}
-            className="btn btn-secondary btn-sm"
-            style={{ padding: '6px 10px' }}
-            aria-label="Previous page"
-          >
-            <ChevronLeft size={16} />
-          </button>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        {/* Previous Page */}
+        <button
+          type="button"
+          onClick={() => onPageChange(Math.max(1, page - 1))}
+          disabled={isFirstPage}
+          className="btn btn-secondary btn-sm"
+          style={{
+            padding: '6px 10px',
+            opacity: isFirstPage ? 0.45 : 1,
+            cursor: isFirstPage ? 'not-allowed' : 'pointer'
+          }}
+          aria-label="Previous page"
+        >
+          <ChevronLeft size={16} />
+        </button>
 
-          {/* Page numbers */}
-          {getPageNumbers().map((p, idx) => {
-            if (p === '...') {
-              return (
-                <span
-                  key={`ellipsis-${idx}`}
-                  style={{
-                    padding: '4px 8px',
-                    color: 'var(--text-dim)',
-                    fontSize: '0.85rem'
-                  }}
-                >
-                  ...
-                </span>
-              );
-            }
-
-            const isCurrent = p === page;
+        {/* Page numbers */}
+        {getPageNumbers().map((p, idx) => {
+          if (p === '...') {
             return (
-              <button
-                key={`page-${p}`}
-                onClick={() => onPageChange(p)}
+              <span
+                key={`ellipsis-${idx}`}
                 style={{
-                  minWidth: '34px',
-                  height: '34px',
-                  borderRadius: 'var(--radius-md)',
-                  fontSize: '0.86rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  border: isCurrent
-                    ? '1px solid var(--primary-light)'
-                    : '1px solid var(--border-subtle)',
-                  background: isCurrent
-                    ? 'var(--primary-gradient-subtle)'
-                    : 'rgba(255, 255, 255, 0.04)',
-                  color: isCurrent ? '#fff' : 'var(--text-muted)',
-                  transition: 'all var(--transition-fast)'
+                  padding: '4px 8px',
+                  color: 'var(--text-dim)',
+                  fontSize: '0.85rem'
                 }}
               >
-                {p}
-              </button>
+                ...
+              </span>
             );
-          })}
+          }
 
-          {/* Next Page */}
-          <button
-            onClick={() => onPageChange(page + 1)}
-            disabled={page >= totalPages}
-            className="btn btn-secondary btn-sm"
-            style={{ padding: '6px 10px' }}
-            aria-label="Next page"
-          >
-            <ChevronRight size={16} />
-          </button>
-        </div>
-      )}
+          const isCurrent = p === page;
+          return (
+            <button
+              key={`page-${p}`}
+              type="button"
+              onClick={() => onPageChange(p)}
+              style={{
+                minWidth: '34px',
+                height: '34px',
+                borderRadius: 'var(--radius-md)',
+                fontSize: '0.86rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                border: isCurrent
+                  ? '1px solid var(--primary-light)'
+                  : '1px solid var(--border-subtle)',
+                background: isCurrent
+                  ? 'var(--primary-gradient-subtle)'
+                  : 'rgba(255, 255, 255, 0.04)',
+                color: isCurrent ? '#fff' : 'var(--text-muted)',
+                transition: 'all var(--transition-fast)'
+              }}
+              aria-current={isCurrent ? 'page' : undefined}
+            >
+              {p}
+            </button>
+          );
+        })}
+
+        {/* Next Page */}
+        <button
+          type="button"
+          onClick={() => onPageChange(Math.min(totalPages, page + 1))}
+          disabled={isLastPage}
+          className="btn btn-secondary btn-sm"
+          style={{
+            padding: '6px 10px',
+            opacity: isLastPage ? 0.45 : 1,
+            cursor: isLastPage ? 'not-allowed' : 'pointer'
+          }}
+          aria-label="Next page"
+        >
+          <ChevronRight size={16} />
+        </button>
+      </div>
     </div>
   );
 };

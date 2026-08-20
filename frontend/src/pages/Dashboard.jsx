@@ -47,15 +47,10 @@ const Dashboard = () => {
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearch(search);
-      setPage(1); // Reset to first page on search change
+      setPage(1);
     }, 300);
     return () => clearTimeout(handler);
   }, [search]);
-
-  // Reset page on filter/sort change
-  useEffect(() => {
-    setPage(1);
-  }, [statusFilter, priorityFilter, sortBy, sortOrder]);
 
   const addToast = (message, type = 'success') => {
     const id = Date.now() + Math.random();
@@ -86,9 +81,10 @@ const Dashboard = () => {
       setLoadingTasks(true);
       const params = {};
 
-      if (debouncedSearch.trim()) params.search = debouncedSearch.trim();
-      if (statusFilter !== 'All') params.status = statusFilter;
-      if (priorityFilter !== 'All') params.priority = priorityFilter;
+      const trimmedSearch = debouncedSearch.trim();
+      if (trimmedSearch) params.search = trimmedSearch;
+      if (statusFilter && statusFilter !== 'All') params.status = statusFilter;
+      if (priorityFilter && priorityFilter !== 'All') params.priority = priorityFilter;
       if (sortBy) params.sortBy = sortBy;
       if (sortOrder) params.sortOrder = sortOrder;
       if (page) params.page = page;
@@ -113,6 +109,56 @@ const Dashboard = () => {
 
   useEffect(() => { fetchAnalytics(); }, [fetchAnalytics]);
   useEffect(() => { fetchTasks(); }, [fetchTasks]);
+
+  // Handler functions that maintain synchronized query state
+  const handleSearchChange = (value) => {
+    setSearch(value);
+    if (!value.trim()) {
+      setDebouncedSearch('');
+      setPage(1);
+    }
+  };
+
+  const handleStatusFilterChange = (newStatus) => {
+    setStatusFilter(newStatus);
+    setPage(1);
+  };
+
+  const handlePriorityFilterChange = (newPriority) => {
+    setPriorityFilter(newPriority);
+    setPage(1);
+  };
+
+  const handleSortByChange = (newSortBy) => {
+    setSortBy(newSortBy);
+    setPage(1);
+  };
+
+  const handleSortOrderChange = (newSortOrder) => {
+    setSortOrder(newSortOrder);
+    setPage(1);
+  };
+
+  const handleResetFilters = () => {
+    setSearch('');
+    setDebouncedSearch('');
+    setStatusFilter('All');
+    setPriorityFilter('All');
+    setSortBy('createdAt');
+    setSortOrder('desc');
+    setPage(1);
+  };
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && (pagination.totalPages === 0 || newPage <= pagination.totalPages)) {
+      setPage(newPage);
+    }
+  };
+
+  const handleLimitChange = (newLimit) => {
+    setLimit(newLimit);
+    setPage(1);
+  };
 
   // Create or Update Task
   const handleSaveTask = async (taskData, taskId) => {
@@ -156,18 +202,6 @@ const Dashboard = () => {
     }
   };
 
-  const handleResetFilters = () => {
-    setSearch('');
-    setStatusFilter('All');
-    setPriorityFilter('All');
-    setSortBy('createdAt');
-    setSortOrder('desc');
-    setPage(1);
-  };
-
-  const handlePageChange = (newPage) => setPage(newPage);
-  const handleLimitChange = (newLimit) => { setLimit(newLimit); setPage(1); };
-
   const handleOpenCreateModal = () => { setEditingTask(null); setIsModalOpen(true); };
   const handleOpenEditModal = (task) => { setEditingTask(task); setIsModalOpen(true); };
 
@@ -181,11 +215,11 @@ const Dashboard = () => {
       {/* Search & Filter Controls */}
       <TaskFilters
         search={search}
-        onSearchChange={setSearch}
+        onSearchChange={handleSearchChange}
         statusFilter={statusFilter}
-        onStatusFilterChange={setStatusFilter}
+        onStatusFilterChange={handleStatusFilterChange}
         priorityFilter={priorityFilter}
-        onPriorityFilterChange={setPriorityFilter}
+        onPriorityFilterChange={handlePriorityFilterChange}
         onResetFilters={handleResetFilters}
       />
 
@@ -213,8 +247,8 @@ const Dashboard = () => {
           <TaskSortControls
             sortBy={sortBy}
             sortOrder={sortOrder}
-            onSortByChange={setSortBy}
-            onSortOrderChange={setSortOrder}
+            onSortByChange={handleSortByChange}
+            onSortOrderChange={handleSortOrderChange}
           />
 
           <button onClick={handleOpenCreateModal} className="btn btn-primary">

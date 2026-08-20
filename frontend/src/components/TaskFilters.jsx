@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, X, Filter, SlidersHorizontal, RotateCcw } from 'lucide-react';
+import { Search, X, RotateCcw } from 'lucide-react';
 
 const TaskFilters = ({
   search,
@@ -11,7 +11,6 @@ const TaskFilters = ({
   onResetFilters
 }) => {
   const statusOptions = ['All', 'Todo', 'In Progress', 'Done'];
-  const priorityOptions = ['All', 'Low', 'Medium', 'High'];
 
   const hasActiveFilters =
     search.trim() !== '' || statusFilter !== 'All' || priorityFilter !== 'All';
@@ -49,15 +48,18 @@ const TaskFilters = ({
             }}
           />
           <input
+            id="task-search-input"
             type="text"
             className="form-input"
             style={{ paddingLeft: '42px', paddingRight: search ? '36px' : '14px' }}
             placeholder="Search tasks by title..."
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
+            aria-label="Search tasks by title"
           />
           {search && (
             <button
+              type="button"
               onClick={() => onSearchChange('')}
               style={{
                 position: 'absolute',
@@ -73,6 +75,7 @@ const TaskFilters = ({
                 alignItems: 'center'
               }}
               title="Clear search"
+              aria-label="Clear search"
             >
               <X size={16} />
             </button>
@@ -82,9 +85,11 @@ const TaskFilters = ({
         {/* Priority Filter Select */}
         <div style={{ minWidth: '160px' }}>
           <select
+            id="priority-filter-select"
             className="form-select"
             value={priorityFilter}
             onChange={(e) => onPriorityFilterChange(e.target.value)}
+            aria-label="Filter by priority"
           >
             <option value="All">All Priorities</option>
             <option value="Low">Low Priority</option>
@@ -96,10 +101,12 @@ const TaskFilters = ({
         {/* Reset Button */}
         {hasActiveFilters && (
           <button
+            type="button"
             onClick={onResetFilters}
             className="btn btn-ghost btn-sm"
             style={{ color: 'var(--primary-light)', padding: '8px 12px' }}
             title="Reset all filters"
+            aria-label="Reset all filters"
           >
             <RotateCcw size={15} />
             <span>Reset</span>
@@ -134,7 +141,9 @@ const TaskFilters = ({
           return (
             <button
               key={opt}
+              type="button"
               onClick={() => onStatusFilterChange(opt)}
+              aria-pressed={isSelected}
               style={{
                 padding: '6px 14px',
                 borderRadius: 'var(--radius-full)',

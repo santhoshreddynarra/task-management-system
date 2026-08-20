@@ -4,11 +4,20 @@ import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 const SORT_OPTIONS = [
   { value: 'createdAt', label: 'Date Created' },
   { value: 'dueDate', label: 'Due Date' },
-  { value: 'priority', label: 'Priority' },
-  { value: 'title', label: 'Title' }
+  { value: 'priority', label: 'Priority' }
 ];
 
 const TaskSortControls = ({ sortBy, sortOrder, onSortByChange, onSortOrderChange }) => {
+  const getDirectionBadge = () => {
+    if (sortBy === 'priority') {
+      return sortOrder === 'asc' ? 'Low → High' : 'High → Low';
+    }
+    if (sortBy === 'dueDate') {
+      return sortOrder === 'asc' ? 'Earliest First' : 'Latest First';
+    }
+    return sortOrder === 'asc' ? 'Oldest First' : 'Newest First';
+  };
+
   return (
     <div
       style={{
@@ -40,7 +49,7 @@ const TaskSortControls = ({ sortBy, sortOrder, onSortByChange, onSortOrderChange
         value={sortBy}
         onChange={(e) => onSortByChange(e.target.value)}
         style={{ padding: '6px 10px', fontSize: '0.84rem', width: 'auto' }}
-        aria-label="Sort by"
+        aria-label="Sort by field"
       >
         {SORT_OPTIONS.map((opt) => (
           <option key={opt.value} value={opt.value}>
@@ -52,12 +61,12 @@ const TaskSortControls = ({ sortBy, sortOrder, onSortByChange, onSortOrderChange
       <button
         onClick={() => onSortOrderChange(sortOrder === 'asc' ? 'desc' : 'asc')}
         className="btn btn-secondary btn-sm"
-        style={{ padding: '6px 12px', gap: '5px' }}
-        title={`Currently: ${sortOrder === 'asc' ? 'Ascending' : 'Descending'}. Click to toggle.`}
+        style={{ padding: '6px 12px', gap: '6px' }}
+        title={`Current sort order: ${sortOrder === 'asc' ? 'Ascending' : 'Descending'}. Click to toggle.`}
         aria-label={`Sort order: ${sortOrder}`}
       >
         {sortOrder === 'asc' ? <ArrowUp size={15} /> : <ArrowDown size={15} />}
-        <span style={{ fontSize: '0.83rem' }}>{sortOrder === 'asc' ? 'Asc' : 'Desc'}</span>
+        <span style={{ fontSize: '0.83rem' }}>{getDirectionBadge()}</span>
       </button>
     </div>
   );
