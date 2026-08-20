@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Navbar from '../components/Navbar';
 import TaskAnalytics from '../components/TaskAnalytics';
+import TaskFilters from '../components/TaskFilters';
 import TaskList from '../components/TaskList';
 import TaskModal from '../components/TaskModal';
 import Toast from '../components/Toast';
@@ -18,12 +19,26 @@ const Dashboard = () => {
   });
   const [loadingAnalytics, setLoadingAnalytics] = useState(true);
 
+  // Filters State
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
+  const [priorityFilter, setPriorityFilter] = useState('All');
+
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
 
   // Toast Notifications
   const [toasts, setToasts] = useState([]);
+
+  // Debounce search effect (300ms)
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [search]);
 
   const addToast = (message, type = 'success') => {
     const id = Date.now() + Math.random();
@@ -52,7 +67,19 @@ const Dashboard = () => {
   const fetchTasks = useCallback(async () => {
     try {
       setLoadingTasks(true);
-      const res = await api.get('/tasks');
+      const params = {};
+
+      if (debouncedSearch.trim()) {
+        params.search = debouncedSearch.trim();
+      }
+      if (statusFilter !== 'All') {
+        params.status = statusFilter;
+      }
+      if (priorityFilter !== 'All') {
+        params.priority = priorityFilter;
+      }
+
+      const res = await api.get('/tasks', { params });
       setTasks(res.data.tasks || []);
     } catch (err) {
       console.error('Failed to fetch tasks:', err.message);
@@ -60,12 +87,15 @@ const Dashboard = () => {
     } finally {
       setLoadingTasks(false);
     }
-  }, []);
+  }, [debouncedSearch, statusFilter, priorityFilter]);
 
   useEffect(() => {
     fetchAnalytics();
+  }, [fetchAnalytics]);
+
+  useEffect(() => {
     fetchTasks();
-  }, [fetchAnalytics, fetchTasks]);
+  }, [fetchTasks]);
 
   // Create or Update Task
   const handleSaveTask = async (taskData, taskId) => {
@@ -110,6 +140,12 @@ const Dashboard = () => {
     }
   };
 
+  const handleResetFilters = () => {
+    setSearch('');
+    setStatusFilter('All');
+    setPriorityFilter('All');
+  };
+
   const handleOpenCreateModal = () => {
     setEditingTask(null);
     setIsModalOpen(true);
@@ -126,6 +162,17 @@ const Dashboard = () => {
 
       {/* Analytics Overview Cards */}
       <TaskAnalytics analytics={analytics} loading={loadingAnalytics} />
+
+      {/* Search & Filter Controls */}
+      <TaskFilters
+        search={search}
+        onSearchChange={setSearch}
+        statusFilter={statusFilter}
+        onStatusFilterChange={setStatusFilter}
+        priorityFilter={priorityFilter}
+        onPriorityFilterChange={setPriorityFilter}
+        onResetFilters={handleResetFilters}
+      />
 
       {/* Action Header */}
       <div
