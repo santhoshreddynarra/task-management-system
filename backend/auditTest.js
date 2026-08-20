@@ -820,6 +820,28 @@ async function runAudit() {
       assertEqual(res.status, 200, 'Status code');
     });
 
+    await test('Security: Helmet security headers present on HTTP responses', async () => {
+      const res = await request(app).get('/');
+      assert(
+        res.headers['x-dns-prefetch-control'] !== undefined ||
+        res.headers['x-content-type-options'] !== undefined ||
+        res.headers['strict-transport-security'] !== undefined,
+        'Helmet security header present'
+      );
+    });
+
+    await test('Security: Rate limiting headers attached to auth endpoints', async () => {
+      const res = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'alice@example.com', password: 'Password123!' });
+      assert(
+        res.headers['ratelimit-limit'] !== undefined ||
+        res.headers['x-ratelimit-limit'] !== undefined ||
+        res.headers['ratelimit-remaining'] !== undefined,
+        'Rate limit header present'
+      );
+    });
+
     // -----------------------------------------------------------------
     // SUMMARY
     // -----------------------------------------------------------------
