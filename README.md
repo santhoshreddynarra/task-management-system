@@ -8,6 +8,8 @@ A full-stack MERN task management application with JWT authentication, advanced 
 
 - [Tech Stack](#tech-stack)
 - [Features & Security Hardening](#features--security-hardening)
+- [Architecture Overview](#architecture-overview)
+- [Design Decisions](#design-decisions)
 - [Project Structure](#project-structure)
 - [Environment Variables](#environment-variables)
 - [Getting Started](#getting-started)
@@ -60,6 +62,40 @@ A full-stack MERN task management application with JWT authentication, advanced 
 - Pagination with per-page selector (6 / 12 / 24 / 48)
 - Toast notifications for all actions (slide-in animation)
 - Responsive layout for desktop, tablet (≤768px), and mobile (≤480px)
+
+---
+
+## Architecture Overview
+
+React/Vite → Express/Node API → MongoDB Atlas
+with JWT authentication and protected API routes.
+
+The React frontend communicates with the Express backend API over HTTP/REST using Axios. JWT tokens issued upon login are included in request headers to authorize access to protected endpoints. The backend validates tokens, enforces user data isolation, and interacts with MongoDB Atlas via Mongoose models.
+
+---
+
+## Design Decisions
+
+### JWT Authentication
+JSON Web Tokens (JWT) were selected to provide stateless authentication between the React frontend and Express backend. The server signs tokens containing the authenticated user's ID upon login, allowing API requests to be authorized without requiring session state to be stored in the database.
+
+### JWT Storage
+The application currently stores the JWT in browser `localStorage` for persistent sessions and straightforward client-side state access. While `localStorage` provides convenient access for Axios interceptors across tab reloads, it carries an inherent XSS risk compared to `httpOnly` cookies, which should be considered for enterprise production deployments.
+
+### MongoDB Database
+MongoDB was chosen because its flexible, document-based JSON schema naturally represents task objects containing variable fields like titles, status enums, priority levels, and due dates. Mongoose schemas provide data validation and easy query composition for user-isolated CRUD operations.
+
+### Search Implementation
+Task title search uses MongoDB regex matching (`$regex`, `$options: 'i'`) to support fast, case-insensitive partial string matches. Before passing user input into the regex pattern, special regex characters (`.*+?^${}()|[\]\\`) are escaped to prevent NoSQL regex injection attacks or unexpected query syntax errors.
+
+### Priority Sorting
+Priority values are stored as human-readable string enums (`Low`, `Medium`, `High`) rather than numbers. To support natural priority sorting (`Low → Medium → High` or reverse) without changing the existing schema, MongoDB `$aggregate` pipelines with `$switch` conditional expressions dynamically map priorities to numeric orders (1, 2, 3) during query execution.
+
+### Testing Strategy
+An automated test suite (`auditTest.js`) powered by Supertest and `mongodb-memory-server` runs against an in-memory database instance. This approach provides rapid, deterministic test execution in local environments and CI pipelines, verifying all authentication flows, task CRUD endpoints, data isolation boundaries, query filters, and security headers.
+
+### User-Level Authorization
+To ensure strict multi-tenant privacy, all task database queries explicitly include `{ userId: req.user._id }` derived from the verified JWT payload. Client-supplied `userId` fields in request bodies are ignored, guaranteeing that users can only view, modify, or delete their own task records.
 
 ---
 
@@ -203,7 +239,7 @@ A GitHub Actions workflow is configured in `.github/workflows/ci.yml`. On every 
 ## Production Deployment & Architecture
 
 ### Production Stack
-- **Frontend SPA**: Deployed on **Vercel** (or Netlify/Static Host). Set `VITE_API_URL` build environment variable.
+- **Frontend SPA**: Deployed on **Vercel** (configured with client-side SPA routing rewrites in `vercel.json`). Set `VITE_API_URL` build environment variable.
 - **Backend API**: Deployed on **Render** (or Railway/Heroku). Set `MONGO_URI`, `JWT_SECRET`, `NODE_ENV=production`, and `CLIENT_URL` environment variables.
 - **Database**: **MongoDB Atlas** database cluster.
 
@@ -243,6 +279,4 @@ All endpoints (except register/login) require the `Authorization: Bearer <token>
 | `page`      | number | `1`          | Page number                                  |
 | `limit`     | number | `12`         | Tasks per page                               |
 | `sortBy`    | string | `createdAt`  | `createdAt`, `dueDate`, `priority`          |
-| `sortOrder` | string | `desc`       | `asc`, `desc`                               |l `/api` requests to `http://localhost:5000` via Vite's proxy config — no CORS issues during development.
-- JWT tokens are stored in `localStorage` under the key `token`. On 401 responses, the Axios interceptor automatically clears the token and redirects to `/login`.
-- MongoDB must be running **before** starting the backend. Without a running MongoDB instance the server will exit immediately with `ECONNREFUSED`.
+| `sortOrder` | string | `desc`       | `asc`, `desc`                               |
